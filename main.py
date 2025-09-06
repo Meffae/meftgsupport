@@ -291,20 +291,28 @@ async def handle_user_question(m: Message, state: FSMContext):
     q = (m.text or "").strip()
     if not q:
         return
-    ans, score = answer_from_kb(q)
+
+    # 1. Сохраняем последний вопрос пользователя
     await state.update_data(last_question=q)
-    if ans:
+
+    # 2. Пытаемся ответить из базы знаний
+    ans, score = answer_from_kb(q)
+    if ans and score >= SIMILARITY_THRESHOLD:
         await m.answer(ans)
-    else:
-        if USE_LLM_FALLBACK:
-            gen = llm_answer(q)
-            if gen:
-                await m.answer(gen)
-                return
-        await m.answer(
-            "Я не уверен в ответе 🤔. Хочешь, передам вопрос оператору?",
-            reply_markup=escalate_kb()
-        )
+        return
+
+    # 3. Если база не уверена — спрашиваем LLM
+    if USE_LLM_FALLBACK:
+        gen = llm_answer(q)
+        if gen:
+            await m.answer(gen)
+            return
+
+    # 4. Если и LLM не ответил — только тогда оператор
+    await m.answer(
+        "Я не уверен в ответе 🤔. Хочешь, передам вопрос оператору?",
+        reply_markup=escalate_kb()
+    )
 
 # ---------------- Support group relay + debug ----------------
 @router.message()
