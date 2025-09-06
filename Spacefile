@@ -1,0 +1,11 @@
+v: 0
+micros:
+  - name: tg-faq-bot
+    src: .
+    engine: "python3.11"
+    primary: true
+    run: ["python", "main_webhook.py"]
+    http_port: 8080
+    public_routes:
+      - path: /
+      - path: /webhook/*
